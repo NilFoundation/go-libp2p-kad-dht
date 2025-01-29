@@ -5,25 +5,18 @@ import (
 	"sync/atomic"
 
 	pb "github.com/libp2p/go-libp2p-kad-dht/pb"
-	"go.opencensus.io/stats/view"
-	"go.opencensus.io/tag"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
 
-var (
-	defaultBytesDistribution        = view.Distribution(1024, 2048, 4096, 16384, 65536, 262144, 1048576, 4194304, 16777216, 67108864, 268435456, 1073741824, 4294967296)
-	defaultMillisecondsDistribution = view.Distribution(0.01, 0.05, 0.1, 0.3, 0.6, 0.8, 1, 2, 3, 4, 5, 6, 8, 10, 13, 16, 20, 25, 30, 40, 50, 65, 80, 100, 130, 160, 200, 250, 300, 400, 500, 650, 800, 1000, 2000, 5000, 10000, 20000, 50000, 100000)
-)
-
 // Keys
 var (
 	KeyMessageType = "message_type"
-	KeyPeerID, _   = tag.NewKey("peer_id")
+	KeyPeerID      = "peer_id"
 	// KeyInstanceID identifies a dht instance by the pointer address.
 	// Useful for differentiating between different dhts that have the same peer id.
-	KeyInstanceID, _ = tag.NewKey("instance_id")
+	KeyInstanceID = "instance_id"
 )
 
 // UpsertMessageType is a convenience upserts the message type
