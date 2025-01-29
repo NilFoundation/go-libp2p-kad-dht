@@ -44,7 +44,7 @@ func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key string) ([]peer.ID,
 	}
 
 	if ns, err := dht.nsEstimator.NetworkSize(); err == nil {
-		metrics.NetworkSize.M(int64(ns))
+		metrics.SetNetworkSize(int64(ns))
 	}
 
 	// refresh the cpl for this key as the query was successful

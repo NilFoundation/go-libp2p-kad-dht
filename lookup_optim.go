@@ -173,7 +173,7 @@ func (dht *IpfsDHT) optimisticProvide(outerCtx context.Context, keyMH multihash.
 	}
 
 	if ns, err := dht.nsEstimator.NetworkSize(); err == nil {
-		metrics.NetworkSize.M(int64(ns))
+		metrics.SetNetworkSize(int64(ns))
 	}
 
 	// refresh the cpl for this key as the query was successful
