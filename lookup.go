@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p-kad-dht/internal"
-	"github.com/libp2p/go-libp2p-kad-dht/metrics"
 	"github.com/libp2p/go-libp2p-kad-dht/qpeerset"
 	kb "github.com/libp2p/go-libp2p-kbucket"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -27,9 +26,8 @@ func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key string) ([]peer.ID,
 		return nil, fmt.Errorf("can't lookup empty key")
 	}
 
-	//TODO: I can break the interface! return []peer.ID
+	// TODO: I can break the interface! return []peer.ID
 	lookupRes, err := dht.runLookupWithFollowup(ctx, key, dht.pmGetClosestPeers(key), func(*qpeerset.QueryPeerset) bool { return false })
-
 	if err != nil {
 		return nil, err
 	}
@@ -43,8 +41,8 @@ func (dht *IpfsDHT) GetClosestPeers(ctx context.Context, key string) ([]peer.ID,
 		logger.Warnf("network size estimator track peers: %s", err)
 	}
 
-	if ns, err := dht.nsEstimator.NetworkSize(); err == nil {
-		metrics.NetworkSize.M(int64(ns))
+	if _, err := dht.nsEstimator.NetworkSize(); err == nil {
+		// FIXME: log to opentelemetry
 	}
 
 	// refresh the cpl for this key as the query was successful

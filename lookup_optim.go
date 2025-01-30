@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/libp2p/go-libp2p-kad-dht/metrics"
 	"github.com/libp2p/go-libp2p-kad-dht/netsize"
 	"github.com/libp2p/go-libp2p-kad-dht/qpeerset"
 	kb "github.com/libp2p/go-libp2p-kbucket"
@@ -172,8 +171,8 @@ func (dht *IpfsDHT) optimisticProvide(outerCtx context.Context, keyMH multihash.
 		logger.Warnf("network size estimator track peers: %s", err)
 	}
 
-	if ns, err := dht.nsEstimator.NetworkSize(); err == nil {
-		metrics.NetworkSize.M(int64(ns))
+	if _, err := dht.nsEstimator.NetworkSize(); err == nil {
+		// FIXME: log to opentelemetry
 	}
 
 	// refresh the cpl for this key as the query was successful

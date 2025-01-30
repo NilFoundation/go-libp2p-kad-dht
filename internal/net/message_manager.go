@@ -19,11 +19,7 @@ import (
 	//lint:ignore SA1019 TODO migrate away from gogo pb
 	"github.com/libp2p/go-msgio/protoio"
 
-	"go.opencensus.io/stats"
-	"go.opencensus.io/tag"
-
 	"github.com/libp2p/go-libp2p-kad-dht/internal"
-	"github.com/libp2p/go-libp2p-kad-dht/metrics"
 	pb "github.com/libp2p/go-libp2p-kad-dht/pb"
 )
 
@@ -73,14 +69,8 @@ func (m *messageSenderImpl) OnDisconnect(ctx context.Context, p peer.ID) {
 // SendRequest sends out a request, but also makes sure to
 // measure the RTT for latency measurements.
 func (m *messageSenderImpl) SendRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
-	ctx, _ = tag.New(ctx, metrics.UpsertMessageType(pmes))
-
 	ms, err := m.messageSenderForPeer(ctx, p)
 	if err != nil {
-		stats.Record(ctx,
-			metrics.SentRequests.M(1),
-			metrics.SentRequestErrors.M(1),
-		)
 		logger.Debugw("request failed to open message sender", "error", err, "to", p)
 		return nil, err
 	}
@@ -89,50 +79,27 @@ func (m *messageSenderImpl) SendRequest(ctx context.Context, p peer.ID, pmes *pb
 
 	rpmes, err := ms.SendRequest(ctx, pmes)
 	if err != nil {
-		stats.Record(ctx,
-			metrics.SentRequests.M(1),
-			metrics.SentRequestErrors.M(1),
-		)
 		logger.Debugw("request failed", "error", err, "to", p)
 		return nil, err
 	}
 
-	stats.Record(ctx,
-		metrics.SentRequests.M(1),
-		metrics.SentBytes.M(int64(pmes.Size())),
-		metrics.OutboundRequestLatency.M(float64(time.Since(start))/float64(time.Millisecond)),
-	)
 	m.host.Peerstore().RecordLatency(p, time.Since(start))
 	return rpmes, nil
 }
 
 // SendMessage sends out a message
 func (m *messageSenderImpl) SendMessage(ctx context.Context, p peer.ID, pmes *pb.Message) error {
-	ctx, _ = tag.New(ctx, metrics.UpsertMessageType(pmes))
-
 	ms, err := m.messageSenderForPeer(ctx, p)
 	if err != nil {
-		stats.Record(ctx,
-			metrics.SentMessages.M(1),
-			metrics.SentMessageErrors.M(1),
-		)
 		logger.Debugw("message failed to open message sender", "error", err, "to", p)
 		return err
 	}
 
 	if err := ms.SendMessage(ctx, pmes); err != nil {
-		stats.Record(ctx,
-			metrics.SentMessages.M(1),
-			metrics.SentMessageErrors.M(1),
-		)
 		logger.Debugw("message failed", "error", err, "to", p)
 		return err
 	}
 
-	stats.Record(ctx,
-		metrics.SentMessages.M(1),
-		metrics.SentBytes.M(int64(pmes.Size())),
-	)
 	return nil
 }
 

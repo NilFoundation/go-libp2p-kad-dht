@@ -7,12 +7,9 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 
 	"github.com/libp2p/go-libp2p-kad-dht/internal/net"
-	"github.com/libp2p/go-libp2p-kad-dht/metrics"
 	pb "github.com/libp2p/go-libp2p-kad-dht/pb"
 
 	"github.com/libp2p/go-msgio"
-	"go.opencensus.io/stats"
-	"go.opencensus.io/tag"
 	"go.uber.org/zap"
 )
 
@@ -50,7 +47,6 @@ func (dht *IpfsDHT) handleNewMessage(s network.Stream) bool {
 
 		var req pb.Message
 		msgbytes, err := r.ReadMsg()
-		msgLen := len(msgbytes)
 		if err != nil {
 			r.ReleaseMsg(msgbytes)
 			if err == io.EOF {
@@ -62,14 +58,6 @@ func (dht *IpfsDHT) handleNewMessage(s network.Stream) bool {
 				c.Write(zap.String("from", mPeer.String()),
 					zap.Error(err))
 			}
-			if msgLen > 0 {
-				_ = stats.RecordWithTags(ctx,
-					[]tag.Mutator{tag.Upsert(metrics.KeyMessageType, "UNKNOWN")},
-					metrics.ReceivedMessages.M(1),
-					metrics.ReceivedMessageErrors.M(1),
-					metrics.ReceivedBytes.M(int64(msgLen)),
-				)
-			}
 			return false
 		}
 		err = req.Unmarshal(msgbytes)
@@ -79,30 +67,15 @@ func (dht *IpfsDHT) handleNewMessage(s network.Stream) bool {
 				c.Write(zap.String("from", mPeer.String()),
 					zap.Error(err))
 			}
-			_ = stats.RecordWithTags(ctx,
-				[]tag.Mutator{tag.Upsert(metrics.KeyMessageType, "UNKNOWN")},
-				metrics.ReceivedMessages.M(1),
-				metrics.ReceivedMessageErrors.M(1),
-				metrics.ReceivedBytes.M(int64(msgLen)),
-			)
 			return false
 		}
 
 		timer.Reset(dhtStreamIdleTimeout)
 
 		startTime := time.Now()
-		ctx, _ := tag.New(ctx,
-			tag.Upsert(metrics.KeyMessageType, req.GetType().String()),
-		)
-
-		stats.Record(ctx,
-			metrics.ReceivedMessages.M(1),
-			metrics.ReceivedBytes.M(int64(msgLen)),
-		)
 
 		handler := dht.handlerForMsgType(req.GetType())
 		if handler == nil {
-			stats.Record(ctx, metrics.ReceivedMessageErrors.M(1))
 			if c := baseLogger.Check(zap.DebugLevel, "can't handle received message"); c != nil {
 				c.Write(zap.String("from", mPeer.String()),
 					zap.Int32("type", int32(req.GetType())))
@@ -117,7 +90,6 @@ func (dht *IpfsDHT) handleNewMessage(s network.Stream) bool {
 		}
 		resp, err := handler(ctx, mPeer, &req)
 		if err != nil {
-			stats.Record(ctx, metrics.ReceivedMessageErrors.M(1))
 			if c := baseLogger.Check(zap.DebugLevel, "error handling message"); c != nil {
 				c.Write(zap.String("from", mPeer.String()),
 					zap.Int32("type", int32(req.GetType())),
@@ -141,7 +113,6 @@ func (dht *IpfsDHT) handleNewMessage(s network.Stream) bool {
 		// send out response msg
 		err = net.WriteMsg(s, resp)
 		if err != nil {
-			stats.Record(ctx, metrics.ReceivedMessageErrors.M(1))
 			if c := baseLogger.Check(zap.DebugLevel, "error writing response"); c != nil {
 				c.Write(zap.String("from", mPeer.String()),
 					zap.Int32("type", int32(req.GetType())),
@@ -159,8 +130,5 @@ func (dht *IpfsDHT) handleNewMessage(s network.Stream) bool {
 				zap.Binary("key", req.GetKey()),
 				zap.Duration("time", elapsedTime))
 		}
-
-		latencyMillis := float64(elapsedTime) / float64(time.Millisecond)
-		stats.Record(ctx, metrics.InboundRequestLatency.M(latencyMillis))
 	}
 }
