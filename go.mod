@@ -31,7 +31,6 @@ require (
 	github.com/multiformats/go-multistream v0.5.0
 	github.com/stretchr/testify v1.9.0
 	github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1
-	go.opencensus.io v0.24.0
 	go.opentelemetry.io/otel v1.27.0
 	go.opentelemetry.io/otel/trace v1.27.0
 	go.uber.org/multierr v1.11.0
